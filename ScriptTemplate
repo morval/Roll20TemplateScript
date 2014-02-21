@@ -1,0 +1,90 @@
+// FrameWork Script
+//
+// copyright pug games 2014
+// please feel free to use this script, change it, add to it in any way you feel
+// Script created by Roll20 user Konrad J.
+
+// these are the CONSTANTS for the FrameWork functions
+var fwCONSTANTS = {
+    COMMANDSEPERATOR : " ",
+    GMIDS : ["all"], //put your Roll20 UserID# here "77736"
+    scdSCRIPTCOMMAND : "!!"
+};
+
+// these are the Globals for the FrameWork functions
+var fwGlobal = {
+	logToConsoleOn : false
+};
+
+function fwLtC(logMsg){
+	if (fwGlobal.logToConsoleOn === true) {
+		log(logMsg);
+	}
+}
+
+function fwIsGM(playerid) {
+	var player = getObj('player', playerid);
+	var d20userid = player.get('_d20userid');
+	var IsGM = false;
+	
+	if (fwCONSTANTS.GMIDS.indexOf(d20userid) >= 0 || fwCONSTANTS.GMIDS.indexOf("all") >= 0) {
+		IsGM = true;
+	}
+	fwLtC("Is GM: " + IsGM);
+	return IsGM;
+}
+
+function fwFindCommand(commandStringToFind, commands) {
+	var i=0;
+	var len = commands.length;
+	var result = {
+		found : "false",
+		parm : ""
+	};
+	for (i; i<len; i++) {
+		if (commands[i].indexOf(commandStringToFind) === 0) {
+			result.found = true;
+			result.parm = commands[i].substr(commandStringToFind.length);
+			i=len;
+		}
+	}
+    fwLtC("Command: " + result);
+	return result; 
+}
+
+function fwTrueRotation(rotation) {
+// fixes Roll20 rotation property so rotation can only be between 0 and 360 deg
+  if (rotation < 0){
+      rotation=360-Math.abs(rotation%360);
+  }
+  rotation=Math.abs(rotation%360);
+  return rotation;
+}
+
+var processScriptTabs = function(msg) {
+    // this will run the various other scripts depending upon the chat
+    // window command.  Just add another Case statement to add a new command.
+
+    var chatCommand = msg.content;
+	var script = chatCommand.substr(0, chatCommand.indexOf(fwCONSTANTS.COMMANDSEPERATOR));
+	chatCommand = chatCommand.replace(script + fwCONSTANTS.COMMANDSEPERATOR, "");
+
+	fwLtC("Script: " + script);
+	fwLtC("Chat Command: " + chatCommand);
+    switch(script) {
+    	case fwCONSTANTS.scdSCRIPTCOMMAND:
+			if (fwIsGM(msg.playerid) === true) {
+				processSimpleCriticalDice(chatCommand, msg);
+			}
+			break;
+    }
+};
+
+on("chat:message", function(msg) {
+    // returns the chat window command entered
+    if (msg.type != 'api') {
+        return;
+    }
+	fwLtC("Chat Msg: " + msg);
+    return processScriptTabs(msg);
+});
