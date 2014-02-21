@@ -1,0 +1,20 @@
+var processScriptTabs = function(msg) {
+    var chatCommand = msg.content;
+	var script = chatCommand.substr(0, chatCommand.indexOf(" "));
+	chatCommand = chatCommand.replace(script + " ", "");
+
+    switch(script) {
+    	case "!scriptcommandname":
+			// do your script here
+			}
+			break;
+    }
+};
+
+on("chat:message", function(msg) {
+    // returns the chat window command entered
+    if (msg.type != 'api') {
+        return;
+    }
+    return processScriptTabs(msg);
+});
