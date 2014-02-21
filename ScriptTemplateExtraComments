@@ -1,0 +1,118 @@
+// FrameWork Script
+//
+// copyright pug games 2014
+// please feel free to use this script, change it, add to it in any way you feel
+// Script created by Roll20 user Konrad J.
+//
+// Namespace your variables.  All this means is make it so there is almost no way another script could have the same global variable name.  All scripts run in the same space so if you name a global // variable "myToken" and and another script does the same then if a user tries to use both your scripts there will be problems.  Notice I said global variables.  Any variable you declare in a
+// function is only local to that function so you don't have to worry about having the same names.
+// how to Namespace.  Below is an example.  the global constant fwCONSTANTS.GMIDS.  The first part of the variable is your scripts "Namespace" since probably no one else is going to be using 
+// fwCONSTANTS.  But someone my choose the variable GMIDS.  Put them together and you have a variable name that probably won't get in the way of another script.
+//
+// Global variables.  These come at the top of your script usually and aren't within functions.  Any function in your script can access these.  Its best to have local variables in your functions,
+// but if you need variables that more than one function needs access to then you want a global variable.
+//
+// these are the CONSTANTS for the FrameWork Script
+// CONSTANTS are simply variables that the script should never change.  The user can change them and the script will automatically use that new value throughout.
+var fwCONSTANTS = {
+    COMMANDSEPERATOR : " ",
+    GMIDS : ["all"], //put your Roll20 UserID# here "77736", you can put a list of co-GMs here as well, each one followed by a "," to make an array variable
+    scdSCRIPTCOMMAND : "!!"  //I have one of these variables for each script command I'm creating.  That way the user can simply change it to whatever they would like her and it works through out
+				//the script.  I give the variable a few initials of the scripts name.
+};
+
+// these are the Globals for the FrameWork Script
+// Global Variables are variables that the script functions will change, things it can test if true or false, etc. and that will be remembered as long as the script is running.
+var fwGlobal = {
+	logToConsoleOn : false
+};
+
+// this is a helper function.  Instead of putting log commands all over your script and then when the script is all working perfectly you comment them out, you simply use this command instead and set the logToConsoleOn to true or false.  This way once you are finished testing your script you simply change the value to false and no logging happens.
+function fwLtC(logMsg){
+	if (fwGlobal.logToConsoleOn === true) {
+		log(logMsg);
+	}
+}
+
+// this function will test to see if the player calling the script is in the GM's list and returns true or false.
+function fwIsGM(playerid) {
+	var player = getObj('player', playerid);
+	var d20userid = player.get('_d20userid');
+	var IsGM = false;
+	
+	if (fwCONSTANTS.GMIDS.indexOf(d20userid) >= 0 || fwCONSTANTS.GMIDS.indexOf("all") >= 0) {
+		IsGM = true;
+	}
+	fwLtC("Is GM: " + IsGM);
+	return IsGM;
+}
+
+// this command is a little more complex than what most scripts need.  Its more of a helper if you have a script that takes a lot of different commands from the user and they could be in any
+// order.  It looks in the chat command that the user typed, checks to see if it can find the command you tell it to look for and returns the parameter for that command that the user supplied
+// as well as if the command was found or not.  fwFindCommand("-rtName:", msg.contect) could have the function look for the "-rtName:" command and return whatever it found after that from the
+// chat window commands the user supplied.
+function fwFindCommand(commandStringToFind, commands) {
+	var i=0;
+	var len = commands.length;
+	var result = {
+		found : "false",
+		parm : ""
+	};
+	for (i; i<len; i++) {
+		if (commands[i].indexOf(commandStringToFind) === 0) {
+			result.found = true;
+			result.parm = commands[i].substr(commandStringToFind.length);
+			i=len;
+		}
+	}
+    fwLtC("Command: " + result);
+	return result; 
+}
+
+// this is just a helper function that I use to get the Rotation of a token always in the form 0 to 360deg.  Sometimes Roll20 gives great than 360deg for some reason.  You won't need this, but
+// I left it in here as an example of a function
+function fwTrueRotation(rotation) {
+// fixes Roll20 rotation property so rotation can only be between 0 and 360 deg
+  if (rotation < 0){
+      rotation=360-Math.abs(rotation%360);
+  }
+  rotation=Math.abs(rotation%360);
+  return rotation;
+}
+
+var processScriptTabs = function(msg) {
+    // this will run the various other scripts depending upon the chat
+    // window command.  Just add another Case statement to add a new command.
+
+	// this takes the chat window commands and separates them into an array of commands
+	var chatCommand = msg.content;
+	var script = chatCommand.substr(0, chatCommand.indexOf(fwCONSTANTS.COMMANDSEPERATOR));
+	chatCommand = chatCommand.replace(script + fwCONSTANTS.COMMANDSEPERATOR, "");
+
+	fwLtC("Script: " + script);
+	fwLtC("Chat Command: " + chatCommand);
+    switch(script) {
+    	case fwCONSTANTS.scdSCRIPTCOMMAND:
+			if (fwIsGM(msg.playerid) === true) {
+				// this runs another script passing all the info it needs on
+				processSimpleCriticalDice(chatCommand, msg);
+			}
+			break;
+    	case "AnotherScript'sCommand":
+			if (fwIsGM(msg.playerid) === true) {
+				// do something else here
+			}
+			break;
+    }
+};
+
+// this is what starts it all.  Its an event that fires when ever a chat message is entered by the user.  If its the type "API" (starts with a "!") then it continues on to the processScriptTabs
+// function
+on("chat:message", function(msg) {
+    // returns the chat window command entered
+    if (msg.type != 'api') {
+        return;
+    }
+	fwLtC("Chat Msg: " + msg);
+    return processScriptTabs(msg);
+});
